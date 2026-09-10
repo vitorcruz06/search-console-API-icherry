@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
+import json
 import os
 import secrets
 from urllib.parse import quote_plus
@@ -21,8 +22,17 @@ st.set_page_config(
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
-CLIENT_SECRETS_FILE = "client_secret.json"
-REDIRECT_URI = "http://localhost:8501/"
+
+# URL oficial da sua aplicação na nuvem
+PRODUCTION_REDIRECT_URI = "https://search-console-icherry.streamlit.app/"
+
+def get_redirect_uri():
+    """Detecta automaticamente se está rodando localmente ou na nuvem."""
+    if os.path.exists("client_secret.json"):
+        return "http://localhost:8501/"
+    return PRODUCTION_REDIRECT_URI
+
+REDIRECT_URI = get_redirect_uri()
 
 # --- APLICAÇÃO DA PALETA DE CORES I-CHERRY ---
 NAVY = "#000050"
@@ -39,7 +49,6 @@ st.markdown(
         color: {NAVY} !important;
     }}
     
-    /* Botão Principal */
     div.stButton > button {{
         background-color: {NAVY} !important;
         color: #FFFFFF !important;
@@ -56,7 +65,6 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(0,0,80,0.2) !important;
     }}
 
-    /* Métricas do Topo */
     [data-testid="stMetricValue"] {{
         color: {NAVY} !important;
         font-weight: bold !important;
@@ -66,7 +74,6 @@ st.markdown(
         font-weight: 500 !important;
     }}
     
-    /* Links */
     a {{
         color: {NAVY} !important;
         text-decoration: none !important;
@@ -75,7 +82,6 @@ st.markdown(
         color: {CORNFLOWER} !important;
     }}
 
-    /* Radio button selecionado */
     div[role="radiogroup"] label[data-baseweb="radio"] div:first-child {{
         background-color: {NAVY} !important;
     }}
@@ -101,10 +107,26 @@ SEARCH_TYPES_MAP = {
     "googleNews": "GOOGLE_NEWS",
 }
 
-# --- AUTENTICAÇÃO ---
+# --- CARREGAMENTO DE CREDENCIAIS INTELIGENTE ---
+def get_client_config():
+    """Lê do arquivo local ou das Secrets do Streamlit Cloud."""
+    if os.path.exists("client_secret.json"):
+        with open("client_secret.json", "r") as f:
+            return json.load(f)
+    elif "client_secret_json" in st.secrets:
+        return json.loads(st.secrets["client_secret_json"])
+    elif "client_secret" in st.secrets:
+        return json.loads(st.secrets["client_secret"])
+    else:
+        st.error(
+            "Credenciais do Google não encontradas. Configure 'client_secret_json' nos Secrets do Streamlit Cloud."
+        )
+        st.stop()
+
 def get_auth_flow():
-    return Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE, scopes=SCOPES, redirect_uri=REDIRECT_URI
+    client_config = get_client_config()
+    return Flow.from_client_config(
+        client_config, scopes=SCOPES, redirect_uri=REDIRECT_URI
     )
 
 def login_user():
@@ -146,7 +168,6 @@ def callback_auth():
 callback_auth()
 
 if "credentials" not in st.session_state:
-    # Mostra o logo na tela de login também
     if os.path.exists("Logo_Azul_Horizontal.png"):
         st.image("Logo_Azul_Horizontal.png", width=250)
     st.title("Google Search Console API")
@@ -246,7 +267,6 @@ def get_gsc_data(
 
 # --- INTERFACE SIDEBAR ---
 with st.sidebar:
-    # Substitui a cereja pelo logo oficial
     if os.path.exists("Logo_Azul_Horizontal.png"):
         st.image("Logo_Azul_Horizontal.png", use_container_width=True)
     else:
@@ -349,7 +369,6 @@ with st.sidebar:
 # --- CONTEÚDO PRINCIPAL ---
 st.title("Google Search Console API")
 
-# LÓGICA DE BUSCA
 should_fetch = btn_buscar or "df_dates" not in st.session_state
 
 if should_fetch:
@@ -392,7 +411,6 @@ if should_fetch:
             st.session_state["current_dimension"] = dimension
             st.session_state["current_site"] = selected_site
 
-# Recupera da sessão
 df_dates = st.session_state.get("df_dates", pd.DataFrame())
 df_dimensions = st.session_state.get("df_dimensions", pd.DataFrame())
 current_dim = st.session_state.get("current_dimension", dimension)
@@ -436,7 +454,9 @@ else:
                 line_shape="linear",
             )
             fig.update_traces(line_color=NAVY, line_width=3)
-            fig.update_layout(hovermode="x unified", template="plotly_white")
+            fig.update_layout(
+                hovermode="x unified", template="plotly_white"
+            )
             st.plotly_chart(fig, use_container_width=True)
 
     else:
