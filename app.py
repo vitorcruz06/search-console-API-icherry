@@ -23,16 +23,8 @@ os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
 
-# URL oficial da sua aplicação na nuvem
-PRODUCTION_REDIRECT_URI = "https://search-console-icherry.streamlit.app"
-
-def get_redirect_uri():
-    """Detecta automaticamente se está rodando localmente ou na nuvem."""
-    if os.path.exists("client_secret.json"):
-        return "https://search-console-icherry.streamlit.app"
-    return PRODUCTION_REDIRECT_URI
-
-REDIRECT_URI = get_redirect_uri()
+# URL FIXA DA SUA APLICAÇÃO NA NUVEM
+REDIRECT_URI = "https://search-console-icherry.streamlit.app/"
 
 # --- APLICAÇÃO DA PALETA DE CORES I-CHERRY ---
 NAVY = "#000050"
@@ -107,16 +99,16 @@ SEARCH_TYPES_MAP = {
     "googleNews": "GOOGLE_NEWS",
 }
 
-# --- CARREGAMENTO DE CREDENCIAIS INTELIGENTE ---
+# --- CARREGAMENTO DE CREDENCIAIS ---
 def get_client_config():
-    """Lê do arquivo local ou das Secrets do Streamlit Cloud."""
-    if os.path.exists("client_secret.json"):
-        with open("client_secret.json", "r") as f:
-            return json.load(f)
-    elif "client_secret_json" in st.secrets:
+    """Lê do Secrets do Streamlit Cloud ou de arquivo local."""
+    if "client_secret_json" in st.secrets:
         return json.loads(st.secrets["client_secret_json"])
     elif "client_secret" in st.secrets:
         return json.loads(st.secrets["client_secret"])
+    elif os.path.exists("client_secret.json"):
+        with open("client_secret.json", "r") as f:
+            return json.load(f)
     else:
         st.error(
             "Credenciais do Google não encontradas. Configure 'client_secret_json' nos Secrets do Streamlit Cloud."
