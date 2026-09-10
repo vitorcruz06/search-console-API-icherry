@@ -29,7 +29,7 @@ PRODUCTION_REDIRECT_URI = "https://search-console-icherry.streamlit.app/"
 def get_redirect_uri():
     """Detecta automaticamente se está rodando localmente ou na nuvem."""
     if os.path.exists("client_secret.json"):
-        return "http://localhost:8501/"
+        return "https://search-console-icherry.streamlit.app/"
     return PRODUCTION_REDIRECT_URI
 
 REDIRECT_URI = get_redirect_uri()
